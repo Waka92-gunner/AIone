@@ -59,9 +59,6 @@
       }
     });
 
-    // Funciones para manejar las tareas
-    const taskList = document.getElementById("task-list");
-
     const addTask = async (task) => {
       try {
         await addDoc(collection(db, "tasks"), {
@@ -72,7 +69,8 @@
         alert("Tarea añadida con éxito");
         loadTasks();
       } catch (e) {
-        alert("Error al añadir tarea: ", e);
+        alert("Error al añadir tarea: " + e.message);
+
       }
     };
 
@@ -89,28 +87,40 @@
     };
 
     // Exponer la función globalmente
-    window.toggleCompleteTask = toggleCompleteTask;
+    window.toggleComplete = toggleCompleteTask;
 
 
+    // Función de carga de tareas
     const loadTasks = async () => {
+      const taskList = document.getElementById("task-list"); // Mueve esta línea dentro de la función
       try {
         const querySnapshot = await getDocs(collection(db, "tasks"));
-        taskList.innerHTML = '';  // Limpiar lista
+        taskList.innerHTML = ''; // Limpiar lista antes de cargar tareas
         querySnapshot.forEach((doc) => {
           const taskData = doc.data();
-          const taskId = doc.id;
+          const task = taskData.task;
+          const completed = taskData.completed || false;
+
+          if (
+            (currentFilter === 'completed' && !completed) ||
+            (currentFilter === 'pending' && completed)
+          ) {
+            return; // Saltar la tarea si no coincide con el filtro
+          }
+
           const taskItem = document.createElement("div");
           taskItem.classList.add("task-item");
-          if (taskData.completed) {
-            taskItem.classList.add("completed");  // Aplicar clase si está completada
+          if (completed) {
+            taskItem.classList.add("completed");
           }
+
           taskItem.innerHTML = `
-        <p>${taskData.task}</p>
-        <button onclick="toggleCompleteTask('${taskId}', ${taskData.completed})">
-          ${taskData.completed ? 'Marcar como Incompleta' : 'Marcar como Completada'}
+        <p>${task}</p>
+        <button onclick="toggleComplete('${doc.id}', ${completed})">
+          ${completed ? 'Desmarcar' : 'Completar'}
         </button>
-        <button onclick="editTask('${taskId}', '${taskData.task}')">Editar</button>
-        <button onclick="deleteTask('${taskId}')">Eliminar</button>
+        <button onclick="editTask('${doc.id}', '${task}')">Editar</button>
+        <button onclick="deleteTask('${doc.id}')">Eliminar</button>
       `;
           taskList.appendChild(taskItem);
         });
@@ -118,41 +128,59 @@
         alert("Error al cargar tareas: " + e);
       }
     };
-    
-    const deleteTask = async (taskId) => {
+
+    // 🔽🔽🔽 AÑADIR ESTE BLOQUE JUSTO AQUÍ 🔽🔽🔽
+    let currentFilter = 'all'; // Estado del filtro actual
+
+    document.getElementById("filter-all").addEventListener("click", () => {
+      currentFilter = 'all';
+      loadTasks();
+    });
+
+    document.getElementById("filter-completed").addEventListener("click", () => {
+      currentFilter = 'completed';
+      loadTasks();
+    });
+
+    document.getElementById("filter-pending").addEventListener("click", () => {
+      currentFilter = 'pending';
+      loadTasks();
+    });
+
+    // Función para marcar/desmarcar como completada
+    window.toggleComplete = async (taskId, completed) => {
       try {
-        await deleteDoc(doc(db, "tasks", taskId));
+        const taskRef = doc(db, "tasks", taskId);
+        await updateDoc(taskRef, {
+          completed: !completed,
+        });
         loadTasks();
       } catch (e) {
-        alert("Error al eliminar tarea: ", e);
+        alert("Error al actualizar tarea: " + e);
       }
     };
 
-    // Hacer la función accesible globalmente
-    window.deleteTask = deleteTask;
+    // Cargar las tareas cuando se cargue la página
+    window.onload = () => {
+      const taskList = document.getElementById("task-list");
 
-    // Editar lista de tareas
-    const editTask = async (taskId, currentTask) => {
-      const newTask = prompt("Editar tarea:", currentTask);
-      if (newTask !== null && newTask.trim() !== "") {
-        try {
-          const taskRef = doc(db, "tasks", taskId);
-          await updateDoc(taskRef, {
-            task: newTask
-          });
-          alert("Tarea actualizada");
-          loadTasks(); // Recargar lista de tareas
-        } catch (e) {
-          alert("Error al actualizar tarea: " + e);
-        }
-      }
+      document.getElementById("filter-all").addEventListener("click", () => {
+        currentFilter = 'all';
+        loadTasks();
+      });
+
+      document.getElementById("filter-completed").addEventListener("click", () => {
+        currentFilter = 'completed';
+        loadTasks();
+      });
+
+      document.getElementById("filter-pending").addEventListener("click", () => {
+        currentFilter = 'pending';
+        loadTasks();
+      });
+
+      loadTasks();
     };
-
-    // Función de Editar accesible globalmente
-    window.editTask = editTask;
-
-
-    window.onload = loadTasks; // Cargar las tareas cuando se cargue la página
 
     // Eventos de formulario
     document.getElementById("register-form-element").addEventListener("submit", (e) => {
@@ -179,6 +207,42 @@
         addTask(task);
       }
     });
+
+    const editTask = async (taskId, currentTask) => {
+      const newTask = prompt("Editar tarea:", currentTask);
+      if (newTask !== null) {
+        const taskRef = doc(db, "tasks", taskId);
+        await updateDoc(taskRef, { task: newTask });
+        loadTasks();
+      }
+    };
+    window.editTask = editTask;
+
+    const deleteTask = async (taskId) => {
+      if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
+        await deleteDoc(doc(db, "tasks", taskId));
+        loadTasks();
+      }
+    };
+    window.deleteTask = deleteTask;
+
+    const updateProgressBar = async () => {
+      const querySnapshot = await getDocs(collection(db, "tasks"));
+      let completedCount = 0;
+      let totalCount = querySnapshot.size;
+
+      querySnapshot.forEach(doc => {
+        if (doc.data().completed) completedCount++;
+      });
+
+      let percentage = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+      document.getElementById("progress-bar").value = percentage;
+      document.getElementById("progress-text").innerText = `${Math.round(percentage)}% completado`;
+    };
+
+    // Llama a esta función después de `loadTasks()`
+    loadTasks().then(updateProgressBar);
+
   </script>
 </head>
 
@@ -211,6 +275,16 @@
   <h2>Lista de Tareas</h2>
   <button id="add-task-btn">Agregar tarea</button>
   <div id="task-list"></div>
+  <h3>Filtrar tareas</h3>
+  <div>
+    <button id="filter-all">Todas</button>
+    <button id="filter-completed">Completadas</button>
+    <button id="filter-pending">Pendientes</button>
+  </div>
+  <div class="progress-container">
+    <progress id="progress-bar" value="0" max="100"></progress>
+    <p id="progress-text">0% completado</p>
+  </div>
 </body>
 
 </html>
