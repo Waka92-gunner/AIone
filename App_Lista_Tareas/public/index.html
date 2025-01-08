@@ -1,89 +1,180 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tareas</title>
+    <!-- Agregar el SDK de Firebase -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+      import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/11.1.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/11.1.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/11.1.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+      // Tu configuración de Firebase (deberías haberla copiado desde la consola de Firebase)
+      const firebaseConfig = { 
+        apiKey: "tu-api-key",
+        authDomain: "tu-proyecto.firebaseapp.com",
+        projectId: "tu-proyecto",
+        storageBucket: "tu-proyecto.appspot.com",
+        messagingSenderId: "tu-id-mensaje",
+        appId: "tu-app-id"
+      };
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
-    </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+      // Inicializar Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 
+      // Función para registrar un nuevo usuario
+      const registerUser = async (email, password) => {
         try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+          await createUserWithEmailAndPassword(auth, email, password);
+          alert("Usuario registrado exitosamente");
+        } catch (error) {
+          alert(error.message);
+        }
+      };
+
+      // Función para iniciar sesión
+      const loginUser = async (email, password) => {
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          alert("Inicio de sesión exitoso");
+        } catch (error) {
+          alert(error.message);
+        }
+      };
+
+      // Mostrar estado de autenticación
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          document.getElementById("welcome-message").style.display = "block";
+          document.getElementById("login-form").style.display = "none";
+          document.getElementById("register-form").style.display = "none";
+        } else {
+          document.getElementById("welcome-message").style.display = "none";
+          document.getElementById("login-form").style.display = "block";
+          document.getElementById("register-form").style.display = "block";
         }
       });
     </script>
-  </body>
+</head>
+<body>
+    <h1>Bienvenido a tu Lista de Tareas</h1>
+
+    <!-- Formulario de Registro -->
+    <div id="register-form">
+        <h2>Registro</h2>
+        <form id="register-form-element">
+            <label for="register-email">Correo electrónico:</label>
+            <input type="email" id="register-email" required />
+            <label for="register-password">Contraseña:</label>
+            <input type="password" id="register-password" required />
+            <button type="submit">Registrar</button>
+        </form>
+    </div>
+
+    <!-- Formulario de Login -->
+    <div id="login-form">
+        <h2>Iniciar Sesión</h2>
+        <form id="login-form-element">
+            <label for="login-email">Correo electrónico:</label>
+            <input type="email" id="login-email" required />
+            <label for="login-password">Contraseña:</label>
+            <input type="password" id="login-password" required />
+            <button type="submit">Iniciar sesión</button>
+        </form>
+    </div>
+
+    <!-- Mensaje de Bienvenida -->
+    <div id="welcome-message" style="display:none;">
+        <h3>¡Bienvenido!</h3>
+        <button id="logout-btn">Cerrar sesión</button>
+    </div>
+
+    <!-- Tareas -->
+    <h2>Lista de Tareas</h2>
+    <button id="add-task-btn">Agregar tarea</button>
+
+    <!-- Contenedor de las tareas -->
+    <div id="task-list"></div>
+
+    <script type="module">
+      // Tareas
+      const taskList = document.getElementById("task-list");
+
+      const addTask = async (task) => {
+  try {
+    // Agregar la tarea a Firestore
+    await addDoc(collection(db, "tasks"), {
+      task: task,
+      timestamp: new Date()
+    });
+    alert("Tarea añadida con éxito");
+    loadTasks(); // Cargar nuevamente las tareas desde Firestore
+  } catch (e) {
+    alert("Error al añadir tarea: ", e);
+  }
+};
+
+const loadTasks = async () => {
+  try {
+    const querySnapshot = await getDocs(collection(db, "tasks"));
+    taskList.innerHTML = ''; // Limpiar la lista antes de cargar las nuevas tareas
+    querySnapshot.forEach((doc) => {
+      const task = doc.data().task;
+      const taskItem = document.createElement("div");
+      taskItem.classList.add("task-item");
+      taskItem.innerHTML = `
+        <p>${task}</p>
+        <button onclick="deleteTask('${doc.id}')">Eliminar</button>
+      `;
+      taskList.appendChild(taskItem);
+    });
+  } catch (e) {
+    alert("Error al cargar tareas: ", e);
+  }
+};
+
+const deleteTask = async (taskId) => {
+  try {
+    await deleteDoc(doc(db, "tasks", taskId)); // Eliminar la tarea de Firestore
+    loadTasks(); // Recargar las tareas después de eliminar
+  } catch (e) {
+    alert("Error al eliminar tarea: ", e);
+  }
+};
+
+      document.getElementById("add-task-btn").addEventListener("click", () => {
+        const task = prompt("Escribe la tarea");
+        if (task) {
+          addTask(task);
+        }
+      });
+
+      //Carga las tareas al inicar la app
+
+      window.onload = loadTasks;
+
+      // Eventos de formulario
+      document.getElementById("register-form-element").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("register-email").value;
+        const password = document.getElementById("register-password").value;
+        registerUser(email, password);
+      });
+
+      document.getElementById("login-form-element").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const email = document.getElementById("login-email").value;
+        const password = document.getElementById("login-password").value;
+        loginUser(email, password);
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        auth.signOut();
+      });
+    </script>
+</body>
 </html>
