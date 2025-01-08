@@ -1,180 +1,216 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lista de Tareas</title>
-    <!-- Agregar el SDK de Firebase -->
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-      import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-      import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Tareas</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module">
+    // Importar Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+    import { updateDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-      // Tu configuración de Firebase (deberías haberla copiado desde la consola de Firebase)
-      const firebaseConfig = { 
-        apiKey: "tu-api-key",
-        authDomain: "tu-proyecto.firebaseapp.com",
-        projectId: "tu-proyecto",
-        storageBucket: "tu-proyecto.appspot.com",
-        messagingSenderId: "tu-id-mensaje",
-        appId: "tu-app-id"
-      };
+    // Configuración de Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDDEPuWMURqeE0Aa7plFWY069l_fdtyFsk",
+      authDomain: "ai-one-323ed.firebaseapp.com",
+      projectId: "ai-one-323ed",
+      storageBucket: "ai-one-323ed.firebasestorage.app",
+      messagingSenderId: "673839138559",
+      appId: "1:673839138559:web:e9fd7d394dcb05bc8a2eca"
+    };
 
-      // Inicializar Firebase
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const db = getFirestore(app);
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
+    // Funciones para manejar la autenticación
+    const registerUser = async (email, password) => {
+      try {
+        await createUserWithEmailAndPassword(auth, email, password);
+        alert("Usuario registrado exitosamente");
+      } catch (error) {
+        alert(error.message);
+      }
+    };
 
-      // Función para registrar un nuevo usuario
-      const registerUser = async (email, password) => {
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-          alert("Usuario registrado exitosamente");
-        } catch (error) {
-          alert(error.message);
-        }
-      };
+    const loginUser = async (email, password) => {
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        alert("Inicio de sesión exitoso");
+      } catch (error) {
+        alert(error.message);
+      }
+    };
 
-      // Función para iniciar sesión
-      const loginUser = async (email, password) => {
-        try {
-          await signInWithEmailAndPassword(auth, email, password);
-          alert("Inicio de sesión exitoso");
-        } catch (error) {
-          alert(error.message);
-        }
-      };
-
-      // Mostrar estado de autenticación
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          document.getElementById("welcome-message").style.display = "block";
-          document.getElementById("login-form").style.display = "none";
-          document.getElementById("register-form").style.display = "none";
-        } else {
-          document.getElementById("welcome-message").style.display = "none";
-          document.getElementById("login-form").style.display = "block";
-          document.getElementById("register-form").style.display = "block";
-        }
-      });
-    </script>
-</head>
-<body>
-    <h1>Bienvenido a tu Lista de Tareas</h1>
-
-    <!-- Formulario de Registro -->
-    <div id="register-form">
-        <h2>Registro</h2>
-        <form id="register-form-element">
-            <label for="register-email">Correo electrónico:</label>
-            <input type="email" id="register-email" required />
-            <label for="register-password">Contraseña:</label>
-            <input type="password" id="register-password" required />
-            <button type="submit">Registrar</button>
-        </form>
-    </div>
-
-    <!-- Formulario de Login -->
-    <div id="login-form">
-        <h2>Iniciar Sesión</h2>
-        <form id="login-form-element">
-            <label for="login-email">Correo electrónico:</label>
-            <input type="email" id="login-email" required />
-            <label for="login-password">Contraseña:</label>
-            <input type="password" id="login-password" required />
-            <button type="submit">Iniciar sesión</button>
-        </form>
-    </div>
-
-    <!-- Mensaje de Bienvenida -->
-    <div id="welcome-message" style="display:none;">
-        <h3>¡Bienvenido!</h3>
-        <button id="logout-btn">Cerrar sesión</button>
-    </div>
-
-    <!-- Tareas -->
-    <h2>Lista de Tareas</h2>
-    <button id="add-task-btn">Agregar tarea</button>
-
-    <!-- Contenedor de las tareas -->
-    <div id="task-list"></div>
-
-    <script type="module">
-      // Tareas
-      const taskList = document.getElementById("task-list");
-
-      const addTask = async (task) => {
-  try {
-    // Agregar la tarea a Firestore
-    await addDoc(collection(db, "tasks"), {
-      task: task,
-      timestamp: new Date()
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById("welcome-message").style.display = "block";
+        document.getElementById("login-form").style.display = "none";
+        document.getElementById("register-form").style.display = "none";
+      } else {
+        document.getElementById("welcome-message").style.display = "none";
+        document.getElementById("login-form").style.display = "block";
+        document.getElementById("register-form").style.display = "block";
+      }
     });
-    alert("Tarea añadida con éxito");
-    loadTasks(); // Cargar nuevamente las tareas desde Firestore
-  } catch (e) {
-    alert("Error al añadir tarea: ", e);
-  }
-};
 
-const loadTasks = async () => {
-  try {
-    const querySnapshot = await getDocs(collection(db, "tasks"));
-    taskList.innerHTML = ''; // Limpiar la lista antes de cargar las nuevas tareas
-    querySnapshot.forEach((doc) => {
-      const task = doc.data().task;
-      const taskItem = document.createElement("div");
-      taskItem.classList.add("task-item");
-      taskItem.innerHTML = `
-        <p>${task}</p>
-        <button onclick="deleteTask('${doc.id}')">Eliminar</button>
+    // Funciones para manejar las tareas
+    const taskList = document.getElementById("task-list");
+
+    const addTask = async (task) => {
+      try {
+        await addDoc(collection(db, "tasks"), {
+          task: task,
+          timestamp: new Date(),
+          completed: false // Nueva tarea siempre comienza como incompleta
+        });
+        alert("Tarea añadida con éxito");
+        loadTasks();
+      } catch (e) {
+        alert("Error al añadir tarea: ", e);
+      }
+    };
+
+    const toggleCompleteTask = async (taskId, currentStatus) => {
+      try {
+        const taskRef = doc(db, "tasks", taskId);
+        await updateDoc(taskRef, {
+          completed: !currentStatus
+        });
+        loadTasks();
+      } catch (e) {
+        alert("Error al actualizar tarea: " + e);
+      }
+    };
+
+    // Exponer la función globalmente
+    window.toggleCompleteTask = toggleCompleteTask;
+
+
+    const loadTasks = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "tasks"));
+        taskList.innerHTML = '';  // Limpiar lista
+        querySnapshot.forEach((doc) => {
+          const taskData = doc.data();
+          const taskId = doc.id;
+          const taskItem = document.createElement("div");
+          taskItem.classList.add("task-item");
+          if (taskData.completed) {
+            taskItem.classList.add("completed");  // Aplicar clase si está completada
+          }
+          taskItem.innerHTML = `
+        <p>${taskData.task}</p>
+        <button onclick="toggleCompleteTask('${taskId}', ${taskData.completed})">
+          ${taskData.completed ? 'Marcar como Incompleta' : 'Marcar como Completada'}
+        </button>
+        <button onclick="editTask('${taskId}', '${taskData.task}')">Editar</button>
+        <button onclick="deleteTask('${taskId}')">Eliminar</button>
       `;
-      taskList.appendChild(taskItem);
-    });
-  } catch (e) {
-    alert("Error al cargar tareas: ", e);
-  }
-};
+          taskList.appendChild(taskItem);
+        });
+      } catch (e) {
+        alert("Error al cargar tareas: " + e);
+      }
+    };
+    
+    const deleteTask = async (taskId) => {
+      try {
+        await deleteDoc(doc(db, "tasks", taskId));
+        loadTasks();
+      } catch (e) {
+        alert("Error al eliminar tarea: ", e);
+      }
+    };
 
-const deleteTask = async (taskId) => {
-  try {
-    await deleteDoc(doc(db, "tasks", taskId)); // Eliminar la tarea de Firestore
-    loadTasks(); // Recargar las tareas después de eliminar
-  } catch (e) {
-    alert("Error al eliminar tarea: ", e);
-  }
-};
+    // Hacer la función accesible globalmente
+    window.deleteTask = deleteTask;
 
-      document.getElementById("add-task-btn").addEventListener("click", () => {
-        const task = prompt("Escribe la tarea");
-        if (task) {
-          addTask(task);
+    // Editar lista de tareas
+    const editTask = async (taskId, currentTask) => {
+      const newTask = prompt("Editar tarea:", currentTask);
+      if (newTask !== null && newTask.trim() !== "") {
+        try {
+          const taskRef = doc(db, "tasks", taskId);
+          await updateDoc(taskRef, {
+            task: newTask
+          });
+          alert("Tarea actualizada");
+          loadTasks(); // Recargar lista de tareas
+        } catch (e) {
+          alert("Error al actualizar tarea: " + e);
         }
-      });
+      }
+    };
 
-      //Carga las tareas al inicar la app
+    // Función de Editar accesible globalmente
+    window.editTask = editTask;
 
-      window.onload = loadTasks;
 
-      // Eventos de formulario
-      document.getElementById("register-form-element").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("register-email").value;
-        const password = document.getElementById("register-password").value;
-        registerUser(email, password);
-      });
+    window.onload = loadTasks; // Cargar las tareas cuando se cargue la página
 
-      document.getElementById("login-form-element").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("login-email").value;
-        const password = document.getElementById("login-password").value;
-        loginUser(email, password);
-      });
+    // Eventos de formulario
+    document.getElementById("register-form-element").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("register-email").value;
+      const password = document.getElementById("register-password").value;
+      registerUser(email, password);
+    });
 
-      document.getElementById("logout-btn").addEventListener("click", () => {
-        auth.signOut();
-      });
-    </script>
+    document.getElementById("login-form-element").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+      loginUser(email, password);
+    });
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      auth.signOut();
+    });
+
+    document.getElementById("add-task-btn").addEventListener("click", () => {
+      const task = prompt("Escribe la tarea");
+      if (task) {
+        addTask(task);
+      }
+    });
+  </script>
+</head>
+
+<body>
+  <h1>Bienvenido a tu Lista de Tareas</h1>
+  <div id="register-form">
+    <h2>Registro</h2>
+    <form id="register-form-element">
+      <label for="register-email">Correo electrónico:</label>
+      <input type="email" id="register-email" required />
+      <label for="register-password">Contraseña:</label>
+      <input type="password" id="register-password" required />
+      <button type="submit">Registrar</button>
+    </form>
+  </div>
+  <div id="login-form">
+    <h2>Iniciar Sesión</h2>
+    <form id="login-form-element">
+      <label for="login-email">Correo electrónico:</label>
+      <input type="email" id="login-email" required />
+      <label for="login-password">Contraseña:</label>
+      <input type="password" id="login-password" required />
+      <button type="submit">Iniciar sesión</button>
+    </form>
+  </div>
+  <div id="welcome-message" style="display:none;">
+    <h3>¡Bienvenido!</h3>
+    <button id="logout-btn">Cerrar sesión</button>
+  </div>
+  <h2>Lista de Tareas</h2>
+  <button id="add-task-btn">Agregar tarea</button>
+  <div id="task-list"></div>
 </body>
+
 </html>
