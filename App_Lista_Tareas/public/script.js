@@ -195,3 +195,29 @@ document.getElementById("filter-pending").addEventListener("click", () => {
 
 // Logout
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
+
+// Mostrar el formulario de registro
+document.getElementById("show-register").addEventListener("click", (e) => {
+  e.preventDefault(); // Evitar navegación por defecto del enlace
+  document.getElementById("register-form-element").style.display = "block"; // Mostrar registro
+  document.getElementById("login-form-element").style.display = "none"; // Ocultar login
+});
+
+// Mostrar el formulario de login
+document.getElementById("show-login").addEventListener("click", (e) => {
+  e.preventDefault(); // Evitar navegación por defecto del enlace
+  document.getElementById("login-form-element").style.display = "block"; // Mostrar login
+  document.getElementById("register-form-element").style.display = "none"; // Ocultar registro
+});
+
+document.getElementById("register-form-element").addEventListener("submit", (e) => {
+  e.preventDefault(); // Evitar que el formulario recargue la página
+  const email = document.getElementById("register-email").value.trim();
+  const password = document.getElementById("register-password").value.trim();
+  if (email && password.length >= 6) {
+    registerUser(email, password); // Llama a la función de registro
+  } else {
+    alert("Datos inválidos. La contraseña debe tener al menos 6 caracteres.");
+  }
+});
+

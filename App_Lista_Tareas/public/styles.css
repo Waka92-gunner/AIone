@@ -49,3 +49,15 @@ button:hover {
 #tasks-section.active {
   display: block;
 }
+
+@media (max-width: 480px) {
+  #auth-section, #task-section {
+    width: 95%;
+    padding: 15px;
+  }
+
+  button {
+    padding: 10px;
+    width: 100%;
+  }
+}
