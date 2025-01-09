@@ -40,16 +40,28 @@
     };
 
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        document.getElementById("welcome-message").style.display = "block";
-        document.getElementById("login-form").style.display = "none";
-        document.getElementById("register-form").style.display = "none";
-      } else {
-        document.getElementById("welcome-message").style.display = "none";
-        document.getElementById("login-form").style.display = "block";
-        document.getElementById("register-form").style.display = "block";
-      }
-    });
+        const authSection = document.getElementById("auth-section");
+        const taskSection = document.getElementById("task-section");
+      
+        if (user) {
+          // Usuario autenticado
+          authSection.style.display = "none"; // Ocultar sección de login
+          taskSection.style.display = "block"; // Mostrar lista de tareas
+          loadTasks();
+        } else {
+          // Usuario no autenticado
+          authSection.style.display = "block"; // Mostrar sección de login
+          taskSection.style.display = "none"; // Ocultar lista de tareas
+        }
+      });
+      
+      document.getElementById("logout-btn").addEventListener("click", () => {
+        auth.signOut().then(() => {
+          alert("Sesión cerrada.");
+        }).catch((error) => {
+          alert("Error al cerrar sesión: " + error.message);
+        });
+      });
 
     const addTask = async (task) => {
       try {
@@ -123,7 +135,7 @@
       }
     };
 
-    // 🔽🔽🔽 AÑADIR ESTE BLOQUE JUSTO AQUÍ 🔽🔽🔽
+    // Bloque de estados
     let currentFilter = 'all'; // Estado del filtro actual
 
     document.getElementById("filter-all").addEventListener("click", () => {
@@ -190,12 +202,23 @@
     });
 
 
-    document.getElementById("login-form-element").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const email = document.getElementById("login-email").value;
-      const password = document.getElementById("login-password").value;
-      loginUser(email, password);
-    });
+    document.getElementById("login-form-element").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value.trim();
+      
+        if (!email || password.length < 6) {
+          alert("Introduce un correo válido y una contraseña de al menos 6 caracteres.");
+          return;
+        }
+      
+        try {
+          await signInWithEmailAndPassword(auth, email, password);
+          alert(`¡Bienvenido, ${email}!`);
+        } catch (error) {
+          alert("Error al iniciar sesión: " + error.message);
+        }
+      });      
 
     document.getElementById("logout-btn").addEventListener("click", () => {
       auth.signOut();
@@ -242,3 +265,65 @@
 
     // Llama a esta función después de `loadTasks()`
     loadTasks().then(updateProgressBar);
+
+    // Controlar la autenticación
+onAuthStateChanged(auth, (user) => {
+    const authSection = document.getElementById("auth-section");
+    const tasksSection = document.getElementById("tasks-section");
+  
+    if (user) {
+      // Usuario autenticado
+      authSection.classList.remove("active");
+      tasksSection.classList.add("active");
+      loadTasks(); // Cargar lista de tareas
+    } else {
+      // Usuario no autenticado
+      authSection.classList.add("active");
+      tasksSection.classList.remove("active");
+    }
+  });
+  
+  // Manejar registro
+  document.getElementById("register-form-element").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = document.getElementById("register-email").value.trim();
+    const password = document.getElementById("register-password").value.trim();
+  
+    if (email && password.length >= 6) {
+      registerUser(email, password);
+    } else {
+      alert("Introduce un email válido y una contraseña de al menos 6 caracteres.");
+    }
+  });
+  
+  // Manejar login
+  document.getElementById("login-form-element").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+  
+    if (email && password) {
+      loginUser(email, password);
+    } else {
+      alert("Introduce tus credenciales correctamente.");
+    }
+  });
+  
+  // Manejar cambio entre formularios
+  document.getElementById("show-register").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("login-form-element").style.display = "none";
+    document.getElementById("register-form-element").style.display = "block";
+  });
+  
+  document.getElementById("show-login").addEventListener("click", (e) => {
+    e.preventDefault();
+    document.getElementById("register-form-element").style.display = "none";
+    document.getElementById("login-form-element").style.display = "block";
+  });
+  
+  // Manejar logout
+  document.getElementById("logout-btn").addEventListener("click", () => {
+    auth.signOut();
+  });
+  
