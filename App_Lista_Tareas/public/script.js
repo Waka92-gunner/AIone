@@ -1,7 +1,7 @@
 // Importar Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
 // Configuración de Firebase
 const firebaseConfig = {
@@ -18,10 +18,24 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Variables globales
-let currentFilter = "all"; // Controla el filtro actual de tareas
+let currentFilter = "all"; // Filtro actual
 
-// Función de autenticación
+// Manejo de autenticación
+onAuthStateChanged(auth, async (user) => {
+  const authSection = document.getElementById("auth-section");
+  const tasksSection = document.getElementById("tasks-section");
+  
+  if (user) {
+    authSection.style.display = "none";
+    tasksSection.style.display = "block";
+    await loadTasks();
+  } else {
+    authSection.style.display = "block";
+    tasksSection.style.display = "none";
+  }
+});
+
+// Registrar usuario
 const registerUser = async (email, password) => {
   try {
     await createUserWithEmailAndPassword(auth, email, password);
@@ -31,6 +45,7 @@ const registerUser = async (email, password) => {
   }
 };
 
+// Iniciar sesión
 const loginUser = async (email, password) => {
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -40,34 +55,19 @@ const loginUser = async (email, password) => {
   }
 };
 
-// Manejar autenticación
-onAuthStateChanged(auth, (user) => {
-  const authSection = document.getElementById("auth-section");
-  const tasksSection = document.getElementById("tasks-section");
-
-  if (user) {
-    authSection.style.display = "none";
-    tasksSection.style.display = "block";
-    loadTasks();
-  } else {
-    authSection.style.display = "block";
-    tasksSection.style.display = "none";
-  }
-});
-
-// Función para cargar tareas
+// Cargar tareas
 const loadTasks = async () => {
+  if (!auth.currentUser) return;
   const taskList = document.getElementById("task-list");
-  taskList.innerHTML = ""; // Limpiar lista
+  taskList.innerHTML = "";
+
   try {
-    const querySnapshot = await getDocs(collection(db, "tasks"));
+    const q = query(collection(db, "tasks"), where("userId", "==", auth.currentUser.uid));
+    const querySnapshot = await getDocs(q);
+
     querySnapshot.forEach((doc) => {
       const { task, completed } = doc.data();
-
-      if (
-        (currentFilter === "completed" && !completed) ||
-        (currentFilter === "pending" && completed)
-      ) return;
+      if ((currentFilter === "completed" && !completed) || (currentFilter === "pending" && completed)) return;
 
       const taskItem = document.createElement("div");
       taskItem.classList.add("task-item");
@@ -75,58 +75,60 @@ const loadTasks = async () => {
 
       taskItem.innerHTML = `
         <p>${task}</p>
-        <button onclick="toggleComplete('${doc.id}', ${completed})">
-          ${completed ? "Desmarcar" : "Completar"}
-        </button>
+        <button onclick="toggleComplete('${doc.id}', ${completed})">${completed ? "Desmarcar" : "Completar"}</button>
         <button onclick="editTask('${doc.id}', '${task}')">Editar</button>
         <button onclick="deleteTask('${doc.id}')">Eliminar</button>
       `;
       taskList.appendChild(taskItem);
     });
-    updateProgressBar(); // Actualizar progreso después de cargar tareas
+    updateProgressBar();
   } catch (e) {
     alert("Error al cargar tareas: " + e.message);
   }
 };
 
-// Funciones CRUD de tareas
-const addTask = async (task) => {
+// Agregar tarea
+const addTask = async () => {
+  const taskInput = document.getElementById("task-input").value.trim();
+  if (!taskInput) return alert("Ingresa una tarea válida.");
   try {
     await addDoc(collection(db, "tasks"), {
-      task,
+      task: taskInput,
       completed: false,
+      userId: auth.currentUser.uid,
       timestamp: new Date(),
     });
-    alert("Tarea añadida.");
+    document.getElementById("task-input").value = "";
     loadTasks();
   } catch (e) {
     alert("Error al añadir tarea: " + e.message);
   }
 };
 
+// Editar tarea
 const editTask = async (taskId, currentTask) => {
   const newTask = prompt("Editar tarea:", currentTask);
-  if (newTask && newTask.trim() !== "") {
-    try {
-      await updateDoc(doc(db, "tasks", taskId), { task: newTask });
-      loadTasks();
-    } catch (e) {
-      alert("Error al editar tarea: " + e.message);
-    }
+  if (!newTask || newTask.trim() === "") return;
+  try {
+    await updateDoc(doc(db, "tasks", taskId), { task: newTask });
+    loadTasks();
+  } catch (e) {
+    alert("Error al editar tarea: " + e.message);
   }
 };
 
+// Eliminar tarea
 const deleteTask = async (taskId) => {
-  if (confirm("¿Seguro que deseas eliminar esta tarea?")) {
-    try {
-      await deleteDoc(doc(db, "tasks", taskId));
-      loadTasks();
-    } catch (e) {
-      alert("Error al eliminar tarea: " + e.message);
-    }
+  if (!confirm("¿Seguro que deseas eliminar esta tarea?")) return;
+  try {
+    await deleteDoc(doc(db, "tasks", taskId));
+    loadTasks();
+  } catch (e) {
+    alert("Error al eliminar tarea: " + e.message);
   }
 };
 
+// Completar tarea
 const toggleComplete = async (taskId, currentStatus) => {
   try {
     await updateDoc(doc(db, "tasks", taskId), { completed: !currentStatus });
@@ -135,18 +137,16 @@ const toggleComplete = async (taskId, currentStatus) => {
     alert("Error al actualizar tarea: " + e.message);
   }
 };
-window.toggleComplete = toggleComplete;
-window.editTask = editTask;
-window.deleteTask = deleteTask;
 
 // Barra de progreso
 const updateProgressBar = async () => {
+  if (!auth.currentUser) return;
   try {
-    const querySnapshot = await getDocs(collection(db, "tasks"));
+    const q = query(collection(db, "tasks"), where("userId", "==", auth.currentUser.uid));
+    const querySnapshot = await getDocs(q);
     const tasks = querySnapshot.docs.map((doc) => doc.data());
     const completedCount = tasks.filter((t) => t.completed).length;
     const percentage = tasks.length ? (completedCount / tasks.length) * 100 : 0;
-
     document.getElementById("progress-bar").value = percentage;
     document.getElementById("progress-text").textContent = `${Math.round(percentage)}% completado`;
   } catch (e) {
@@ -154,70 +154,18 @@ const updateProgressBar = async () => {
   }
 };
 
-// Formularios de autenticación
+// Eventos de formularios
 document.getElementById("register-form-element").addEventListener("submit", (e) => {
   e.preventDefault();
-  const email = document.getElementById("register-email").value.trim();
-  const password = document.getElementById("register-password").value.trim();
-  if (email && password.length >= 6) {
-    registerUser(email, password);
-  } else {
-    alert("Datos inválidos.");
-  }
+  registerUser(document.getElementById("register-email").value.trim(), document.getElementById("register-password").value.trim());
 });
 
 document.getElementById("login-form-element").addEventListener("submit", (e) => {
   e.preventDefault();
-  const email = document.getElementById("login-email").value.trim();
-  const password = document.getElementById("login-password").value.trim();
-  if (email && password) {
-    loginUser(email, password);
-  } else {
-    alert("Credenciales inválidas.");
-  }
-});
-
-// Filtros de tareas
-document.getElementById("filter-all").addEventListener("click", () => {
-  currentFilter = "all";
-  loadTasks();
-});
-
-document.getElementById("filter-completed").addEventListener("click", () => {
-  currentFilter = "completed";
-  loadTasks();
-});
-
-document.getElementById("filter-pending").addEventListener("click", () => {
-  currentFilter = "pending";
-  loadTasks();
+  loginUser(document.getElementById("login-email").value.trim(), document.getElementById("login-password").value.trim());
 });
 
 // Logout
-document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
-
-// Mostrar el formulario de registro
-document.getElementById("show-register").addEventListener("click", (e) => {
-  e.preventDefault(); // Evitar navegación por defecto del enlace
-  document.getElementById("register-form-element").style.display = "block"; // Mostrar registro
-  document.getElementById("login-form-element").style.display = "none"; // Ocultar login
+document.querySelectorAll("#logout-btn").forEach((btn) => {
+  btn.addEventListener("click", () => signOut(auth));
 });
-
-// Mostrar el formulario de login
-document.getElementById("show-login").addEventListener("click", (e) => {
-  e.preventDefault(); // Evitar navegación por defecto del enlace
-  document.getElementById("login-form-element").style.display = "block"; // Mostrar login
-  document.getElementById("register-form-element").style.display = "none"; // Ocultar registro
-});
-
-document.getElementById("register-form-element").addEventListener("submit", (e) => {
-  e.preventDefault(); // Evitar que el formulario recargue la página
-  const email = document.getElementById("register-email").value.trim();
-  const password = document.getElementById("register-password").value.trim();
-  if (email && password.length >= 6) {
-    registerUser(email, password); // Llama a la función de registro
-  } else {
-    alert("Datos inválidos. La contraseña debe tener al menos 6 caracteres.");
-  }
-});
-

@@ -22,7 +22,7 @@
       <button type="submit">Registrarse</button>
       <p>¿Ya tienes una cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
     </form>
-  
+
     <!-- Login -->
     <form id="login-form-element">
       <h2>Iniciar Sesión</h2>
@@ -32,18 +32,22 @@
       <p>¿No tienes una cuenta? <a href="#" id="show-register">Regístrate</a></p>
     </form>
   </div>
-  
+
   <div id="tasks-section" style="display: none;">
+    <button id="filter-all">Todas</button>
+    <button id="filter-completed">Completadas</button>
+    <button id="filter-pending">Pendientes</button>
     <!-- Aquí estará la lista de tareas -->
     <button id="logout-btn">Cerrar sesión</button>
     <div id="task-list"></div>
   </div>
-  
+
 
   <!-- Lista de Tareas (Oculta inicialmente) -->
   <div id="task-section" style="display: none;">
     <h1>Gestión de Tareas</h1>
     <div id="task-controls">
+      <input type="text" id="task-input" placeholder="Escribe tu tarea aquí">
       <button id="add-task-btn">Agregar Tarea</button>
       <button id="logout-btn">Cerrar Sesión</button>
     </div>
